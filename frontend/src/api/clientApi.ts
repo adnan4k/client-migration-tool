@@ -46,3 +46,19 @@ export async function migrateClient(id: number): Promise<Client> {
     throw new Error(`Failed to migrate client: ${getErrorMessage(error)}`)
   }
 }
+
+export interface BulkMigrationResponse {
+  successCount: number
+  failedCount: number
+  migratedClients: Client[]
+  errors: string[]
+}
+
+export async function migrateClientsBulk(ids: number[]): Promise<BulkMigrationResponse> {
+  try {
+    const response = await api.post<BulkMigrationResponse>('/migrate/bulk', { ids })
+    return response.data
+  } catch (error) {
+    throw new Error(`Failed to migrate clients: ${getErrorMessage(error)}`)
+  }
+}

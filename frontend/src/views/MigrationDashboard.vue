@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { Client, TabType } from '../types'
 import { useClients } from '../composables/useClients'
 import { useClientMigration } from '../composables/useClientMigration'
@@ -9,18 +9,33 @@ import ClientTable from '../components/ClientTable.vue'
 
 const activeTab = ref<TabType>('legacy')
 const drawer = ref(true)
+const selectedClientIds = ref<number[]>([])
 
 const { legacyClients, newClients, loading, loadClients } = useClients()
 const { snackbar, notification } = useNotification()
 
-const { migrate } = useClientMigration(async () => {
+const { migrate, migrateBulk } = useClientMigration(async () => {
   await loadClients()
+  selectedClientIds.value = []
   activeTab.value = 'migrated'
 })
 
 const handleMigrate = async (client: Client) => {
   await migrate(client)
 }
+
+const handleBulkMigrate = async () => {
+  const selectedClients = legacyClients.value.filter((client) =>
+    selectedClientIds.value.includes(client.id)
+  )
+  if (selectedClients.length === 0) return
+
+  await migrateBulk(selectedClients)
+  selectedClientIds.value = []
+}
+
+const selectedCount = computed(() => selectedClientIds.value.length)
+const hasSelection = computed(() => selectedCount.value > 0)
 
 const navigationItems = [
   { value: 'legacy', title: TAB_LABELS.LEGACY, icon: 'mdi-database' },
@@ -99,6 +114,43 @@ onMounted(loadClients)
 
       <v-divider />
 
+      <!-- Bulk Actions Bar -->
+      <div
+        v-if="activeTab === 'legacy' && hasSelection"
+        class="d-flex align-center pa-3"
+        :style="{
+          backgroundColor: THEME_COLORS.GRAY_LIGHT,
+          borderBottom: `1px solid ${THEME_COLORS.GRAY_LIGHT}`,
+        }"
+      >
+        <span
+          class="mr-4 font-weight-medium"
+          :style="{ color: THEME_COLORS.BLACK }"
+        >
+          {{ selectedCount }} client(s) selected
+        </span>
+        <v-btn
+          color="primary"
+          rounded="pill"
+          :style="{
+            backgroundColor: `${THEME_COLORS.BLACK} !important`,
+            color: `${THEME_COLORS.WHITE} !important`,
+          }"
+          @click="handleBulkMigrate"
+        >
+          <v-icon start icon="mdi-content-copy" />
+          Migrate Selected
+        </v-btn>
+        <v-btn
+          variant="text"
+          class="ml-2"
+          :style="{ color: THEME_COLORS.BLACK }"
+          @click="selectedClientIds = []"
+        >
+          Clear Selection
+        </v-btn>
+      </div>
+
       <div class="flex-grow-1 d-flex flex-column" style="overflow: auto">
         <!-- Legacy clients table -->
         <template v-if="activeTab === 'legacy'">
@@ -107,7 +159,10 @@ onMounted(loadClients)
             :columns="TABLE_COLUMNS.LEGACY"
             :loading="loading"
             :show-actions="true"
+            :selectable="true"
+            :selected-ids="selectedClientIds"
             @migrate="handleMigrate"
+            @update:selected-ids="selectedClientIds = $event"
           />
         </template>
 

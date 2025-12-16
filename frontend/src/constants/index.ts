@@ -4,6 +4,8 @@ export const THEME_COLORS = {
   BLACK: '#000000',
   GRAY_LIGHT: '#E0E0E0',
   GRAY_MEDIUM: '#666666',
+  SUCCESS: '#4CAF50',
+  ERROR: '#F44336',
 } as const
 
 // Table configuration

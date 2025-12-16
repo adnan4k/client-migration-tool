@@ -162,7 +162,7 @@ onMounted(loadClients)
 
     <v-snackbar
       v-model="snackbar"
-      :color="notification.type"
+      :color="notification.type === 'success' ? THEME_COLORS.SUCCESS : notification.type === 'error' ? THEME_COLORS.ERROR : THEME_COLORS.BLACK"
       :timeout="NOTIFICATION_TIMEOUT"
     >
       {{ notification.message }}
